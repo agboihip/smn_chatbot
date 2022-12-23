@@ -1,11 +1,8 @@
 # -*- coding: UTF-8 -*-​ 
-import torch
-import copy
-import os
-import torch.nn as nn
-
-from data_processor import DataProcessor
+import torch,copy,os
+from torch import nn
 from smn_model import SMNModel
+from data_processor import DataProcessor
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.manual_seed(512)
@@ -41,8 +38,7 @@ class Config:
 
 def eval(model, loss_func, dev_loader):
     model.eval()
-    loss_val = 0.0
-    corrects = 0.0
+    loss_val,corrects = 0.0, 0.0
     for contexts, candidates, labels in dev_loader:
         contexts = contexts.to(device)
         candidates = candidates.to(device)
@@ -110,12 +106,8 @@ if __name__ == "__main__":
     if not os.path.exists(config.vocab_path) or config.update_vocab:
         processor.create_vocab(train_dataset_tokens, config.vocab_path)
     
-    train_dataset_indices, vocab_size = processor.get_dataset_indices(train_dataset_tokens,
-                                                                     config.vocab_path,
-                                                                     config.vocab_size)
-    dev_dataset_indices, _ = processor.get_dataset_indices(dev_dataset_tokens,
-                                                            config.vocab_path,
-                                                            config.vocab_size)
+    train_dataset_indices, vocab_size = processor.get_dataset_indices(train_dataset_tokens, config.vocab_path, config.vocab_size)
+    dev_dataset_indices, _ = processor.get_dataset_indices(dev_dataset_tokens, config.vocab_path, config.vocab_size)
     config.vocab_size = vocab_size # 实际词表大小
 
     train_tensor = processor.create_tensor_dataset(train_dataset_indices, config.max_turn_num, config.max_seq_len)

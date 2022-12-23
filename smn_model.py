@@ -1,8 +1,6 @@
 # -*- coding: UTF-8 -*-​ 
-import copy
-import torch
-import torch.nn as nn
-from torch.autograd import Variable
+import copy,torch
+from torch import nn,autograd
 
 torch.manual_seed(1024)
 torch.cuda.manual_seed(1024)
@@ -46,7 +44,7 @@ class GRUModel(nn.Module):
         # out的文本长度为该batch中最长文本的有效长度
         # 某个batch中最长文本的有效长度都可能小于预先设置的max_seq_len，为了后续计算，需要将其填充
         if out_unsort.size(1) < seq_len:
-            pad_tensor = Variable(torch.zeros(out_unsort.size(0), seq_len - out_unsort.size(1), out_unsort.size(2))).to(out_unsort)
+            pad_tensor = autograd.Variable(torch.zeros(out_unsort.size(0), seq_len - out_unsort.size(1), out_unsort.size(2))).to(out_unsort)
             out_unsort = torch.cat([out_unsort, pad_tensor], 1)
 
         return out_unsort

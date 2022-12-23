@@ -1,9 +1,6 @@
 # -*- coding: UTF-8 -*-​ 
-import json
-import collections
-import unicodedata
-import torch
-import numpy as np
+import collections,unicodedata
+import json,torch,numpy as np
 
 torch.manual_seed(1024)
 torch.cuda.manual_seed(1024)
@@ -41,18 +38,14 @@ class DataProcessor:
         if char == " " or char == "\t" or char == "\n" or char == "\r":
             return True
         cat = unicodedata.category(char)
-        if cat == "Zs": # Separator, Space
-            return True
-        return False
+        return cat == "Zs": # Separator, Space
 
     def _is_control(self, char):
         """判断字符是否为控制字符"""
         if char == "\t" or char == "\n" or char == "\r":
             return False
         cat = unicodedata.category(char)
-        if cat.startswith("C"): # Control
-            return True
-        return False
+        return cat.startswith("C"): # Control
 
     def _is_punctuation(self, char):
         """判断字符是否为标点符号"""
@@ -62,9 +55,7 @@ class DataProcessor:
                 (cp >= 91 and cp <= 96) or (cp >= 123 and cp <= 126)):
             return True
         cat = unicodedata.category(char)
-        if cat.startswith("P"): # Punctuation
-            return True
-        return False
+        return cat.startswith("P"): # Punctuation
     
     def _clean_text(self, text):
         """删除无效字符, 将\t\r\n等字符用空格替代"""
@@ -73,10 +64,8 @@ class DataProcessor:
             cp = ord(char)
             if cp == 0 or cp == 0xfffd or self._is_control(char):
                 continue
-            if self._is_whitespace(char):
-                output.append(" ")
-            else:
-                output.append(char)
+            if self._is_whitespace(char): output.append(" ")
+            else: output.append(char)
         return "".join(output)
 
     def _whitespace_tokenize(self, text):
@@ -93,8 +82,7 @@ class DataProcessor:
         output = []
         for char in token:
             cat = unicodedata.category(char)
-            if cat == "Mn":
-                continue
+            if cat == "Mn": continue
             output.append(char)
         return "".join(output)
 
@@ -123,14 +111,12 @@ class DataProcessor:
         for idx, data in enumerate(datas):
             # if idx > 100: # for debug
             #     break
-            contexts = []
-            candidates = []
+            contexts,candidates = [],[]
             for text in data["messages-so-far"]:
                 contexts.append(text["utterance"])
             gt = data["options-for-correct-answers"][0]["candidate-id"]
             # print(len(data["options-for-next"]))
-            label = []
-            label_idx = None
+            label,label_idx = [],None
             for candidate_idx, candidate in enumerate(data["options-for-next"]):
                 if candidate["candidate-id"] == gt:
                     label.append(1)
