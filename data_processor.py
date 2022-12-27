@@ -38,14 +38,14 @@ class DataProcessor:
         if char == " " or char == "\t" or char == "\n" or char == "\r":
             return True
         cat = unicodedata.category(char)
-        return cat == "Zs": # Separator, Space
+        return cat == "Zs" # Separator, Space
 
     def _is_control(self, char):
         """判断字符是否为控制字符"""
         if char == "\t" or char == "\n" or char == "\r":
             return False
         cat = unicodedata.category(char)
-        return cat.startswith("C"): # Control
+        return cat.startswith("C") # Control
 
     def _is_punctuation(self, char):
         """判断字符是否为标点符号"""
@@ -55,7 +55,7 @@ class DataProcessor:
                 (cp >= 91 and cp <= 96) or (cp >= 123 and cp <= 126)):
             return True
         cat = unicodedata.category(char)
-        return cat.startswith("P"): # Punctuation
+        return cat.startswith("P") # Punctuation
     
     def _clean_text(self, text):
         """删除无效字符, 将\t\r\n等字符用空格替代"""
