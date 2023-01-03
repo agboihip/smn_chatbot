@@ -6,7 +6,7 @@ from data_processor import DataProcessor
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.manual_seed(512)
-
+print(device)
 class Config:
     def __init__(self):
         self.data_path = {

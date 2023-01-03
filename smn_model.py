@@ -34,7 +34,7 @@ class GRUModel(nn.Module):
         for i in range(len(lengths_sort)):
             if lengths_sort[i] == 0: lengths_sort[i] = 1
 
-        x_pack = nn.utils.rnn.pack_padded_sequence(x_sort, lengths_sort, batch_first=True)
+        x_pack = nn.utils.rnn.pack_padded_sequence(x_sort, lengths_sort, batch_first=True, enforce_sorted=False)
         out_pack, h_n = self.gru(x_pack)
         out, _ = nn.utils.rnn.pad_packed_sequence(out_pack, batch_first=True) 
 
