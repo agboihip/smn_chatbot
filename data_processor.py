@@ -8,6 +8,7 @@ torch.cuda.manual_seed(1024)
 # 参考google团队
 # http://www.apache.org/licenses/LICENSE-2.0
 
+
 class InputExample:
     def __init__(self, guid, context, candidate, label):
         self.guid = guid
@@ -38,6 +39,7 @@ class DataProcessor:
         if char == " " or char == "\t" or char == "\n" or char == "\r":
             return True
         cat = unicodedata.category(char)
+        
         return cat == "Zs" # Separator, Space
 
     def _is_control(self, char):
@@ -64,8 +66,10 @@ class DataProcessor:
             cp = ord(char)
             if cp == 0 or cp == 0xfffd or self._is_control(char):
                 continue
-            if self._is_whitespace(char): output.append(" ")
-            else: output.append(char)
+            if self._is_whitespace(char):
+                output.append(" ")
+            else:
+                output.append(char)
         return "".join(output)
 
     def _whitespace_tokenize(self, text):
@@ -82,7 +86,8 @@ class DataProcessor:
         output = []
         for char in token:
             cat = unicodedata.category(char)
-            if cat == "Mn": continue
+            if cat == "Mn":
+                continue
             output.append(char)
         return "".join(output)
 
@@ -111,12 +116,14 @@ class DataProcessor:
         for idx, data in enumerate(datas):
             # if idx > 100: # for debug
             #     break
-            contexts,candidates = [],[]
+            contexts = []
+            candidates = []
             for text in data["messages-so-far"]:
                 contexts.append(text["utterance"])
             gt = data["options-for-correct-answers"][0]["candidate-id"]
             # print(len(data["options-for-next"]))
-            label,label_idx = [],None
+            label = []
+            label_idx = None
             for candidate_idx, candidate in enumerate(data["options-for-next"]):
                 if candidate["candidate-id"] == gt:
                     label.append(1)

@@ -10,11 +10,11 @@ torch.manual_seed(512)
 class Config:
     def __init__(self):
         self.data_path = {
-            "train": "./dataset/dialogue/ubuntu_train_subtask_1.json",
-            # "train": "./dataset/dialogue/ubuntu_dev_subtask_1.json", # for debug
-            "dev": "./dataset/dialogue/ubuntu_dev_subtask_1.json"
+            "train": "../drive_data/MyDrive/dataset/dialogue/ubuntu_train_subtask_1.json",
+            # "train": "../drive_data/MyDrive/dataset/dialogue/ubuntu_dev_subtask_1.json", # for debug
+            "dev": "../drive_data/MyDrive/dataset/dialogue/ubuntu_dev_subtask_1.json"
         }
-        self.vocab_path = "./dataset/dialogue/vocab.txt"
+        self.vocab_path = "../drive_data/MyDrive/dataset/dialogue/vocab.txt"
         self.model_save_path = "./stm_model_param.pkl"
         self.update_vocab = True
 
@@ -38,7 +38,7 @@ class Config:
 
 def eval(model, loss_func, dev_loader):
     model.eval()
-    loss_val,corrects = 0.0, 0.0
+    loss_val,corrects = 0.0,0.0
     for contexts, candidates, labels in dev_loader:
         contexts = contexts.to(device)
         candidates = candidates.to(device)
@@ -62,8 +62,7 @@ def train(model, train_loader, dev_loader, optimizer, loss_func, epochs):
     best_model_params = copy.deepcopy(model.state_dict())
     for epoch in range(epochs):
         model.train()
-        loss_val = 0.0
-        corrects = 0.0
+        loss_val,corrects = 0.0,0.0
         for contexts, candidates, labels in train_loader:
             contexts = contexts.to(device)
             candidates = candidates.to(device)

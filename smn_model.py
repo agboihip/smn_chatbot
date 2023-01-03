@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-​ 
-import copy,torch
+import copy,torch, numpy as np
 from torch import nn,autograd
 
 torch.manual_seed(1024)
@@ -32,11 +32,10 @@ class GRUModel(nn.Module):
 
         #有的batch中，对话的轮数可能都小于max_turn_num，前面用全padding将其进行了填充，需要将这部分的有效长度置为1
         for i in range(len(lengths_sort)):
-            if lengths_sort[i] == 0:
-                lengths_sort[i] = 1
+            if lengths_sort[i] == 0: lengths_sort[i] = 1
 
         x_pack = nn.utils.rnn.pack_padded_sequence(x_sort, lengths_sort, batch_first=True)
-        out_pack, h_n =self.gru(x_pack)
+        out_pack, h_n = self.gru(x_pack)
         out, _ = nn.utils.rnn.pad_packed_sequence(out_pack, batch_first=True) 
 
         out_unsort = out.index_select(0, idx_unsort)
@@ -178,14 +177,10 @@ class SMNModel(nn.Module):
         contexts_turns_num_extend = torch.stack(contexts_turns_num_extend, dim=1) # [batch_size, candidate_set_size]
         contexts_turns_num_extend = contexts_turns_num_extend.view(-1) # [batch_size * candidate_set_size]
         H = self.gru2(M, contexts_turns_num_extend) # [batch_size * candidate_set_size, turn_num, hidden_size]
-        if self.fusion_method != "dynamic":
-            F = self.feature_fusion(H, contexts_turns_num_extend).contiguous() # [batch_size * candidate_set_size, hidden_size]
-        else:
-            F = self.feature_fusion(H, contexts_turns_num_extend, att_status = contexts_hiddens).contiguous()
+        F = self.feature_fusion(H, contexts_turns_num_extend).contiguous() if self.fusion_method != "dynamic" else self.feature_fusion(H, contexts_turns_num_extend, att_status = contexts_hiddens).contiguous() # [batch_size * candidate_set_size, hidden_size]
 
         flatten = F.view(batch_size, -1)
         logits = self.classifier(flatten)
         probs = torch.nn.functional.softmax(logits, dim=-1)
 
         return probs
-
