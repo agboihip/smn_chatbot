@@ -29,7 +29,7 @@ class Config:
         self.candidates_set_size = 2 #Rn@k: n=2，10，100, k=1
 
         self.batch_size = 12
-        self.epochs = 1000
+        self.epochs = 100
         self.dropout = 0.2
         self.lr = 0.0002
         self.num_classes = self.candidates_set_size
