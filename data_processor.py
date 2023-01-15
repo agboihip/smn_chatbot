@@ -5,9 +5,6 @@ import json,torch,numpy as np
 torch.manual_seed(1024)
 torch.cuda.manual_seed(1024)
 
-# 参考google团队
-# http://www.apache.org/licenses/LICENSE-2.0
-
 
 class InputExample:
     def __init__(self, guid, context, candidate, label):
@@ -75,84 +72,69 @@ class DataProcessor:
     def _whitespace_tokenize(self, text):
         """用空格将文本进行切分"""
         text = text.strip()
-        if not text:
-            return []
+        if not text: return []
         tokens = text.split()
         return tokens
     
     def _strip_accents(self, token):
         """去除token中的重音"""
-        token = unicodedata.normalize("NFD", token)
-        output = []
+        output,token = [],unicodedata.normalize("NFD", token)
+        
         for char in token:
             cat = unicodedata.category(char)
-            if cat == "Mn":
-                continue
+            if cat == "Mn": continue
             output.append(char)
         return "".join(output)
 
     def _split_on_punc(self, token):
         """对token根据标点符号进行再切分，并将标点符号作为一个单独的token"""
-        chars = list(token)
-        i = 0
-        start_new_word = True
-        output = []
+        output,chars = [],list(token)
+        i,start_new_word = 0,True
+        
         while i < len(chars):
             char = chars[i]
             if self._is_punctuation(char):
                 output.append([char])
                 start_new_word = True
             else:
-                if start_new_word:
-                    output.append([])
+                if start_new_word: output.append([])
                 start_new_word = False
                 output[-1].append(char)
             i += 1
         return ["".join(x) for x in output]
 
     def _create_examples(self, datas, data_type, n):
-        """将输入的json封装成input_example数据结构"""
+        """Envelopper le json d'entrée dans une structure de données input_example"""
         examples = []
-        for idx, data in enumerate(datas):
-            # if idx > 100: # for debug
-            #     break
-            contexts = []
-            candidates = []
-            for text in data["messages-so-far"]:
-                contexts.append(text["utterance"])
-            gt = data["options-for-correct-answers"][0]["candidate-id"]
-            # print(len(data["options-for-next"]))
-            label = []
-            label_idx = None
-            for candidate_idx, candidate in enumerate(data["options-for-next"]):
-                if candidate["candidate-id"] == gt:
-                    label.append(1)
-                    label_idx = candidate_idx
-                    candidates.append(candidate["utterance"])
-                    break
-            if label_idx is None:
-                raise ValueError(f"Data: {data['example-id']} has no label")
+        for data in datas:
+            candidates,contexts = [],[text["utterance"] for text in data["messages-so-far"]]
+            label,label_idx = [], None
+            if "options-for-correct-answers" in data:
+                gt = data["options-for-correct-answers"][0]["candidate-id"]
+                for candidate_idx, candidate in enumerate(data["options-for-next"]):
+                    if candidate["candidate-id"] == gt:
+                        label.append(1)
+                        label_idx = candidate_idx
+                        candidates.append(candidate["utterance"])
+                        break
+                if label_idx is None: raise ValueError(f"Data: {data['example-id']} has no label")
 
-            # 随机挑选负例
-            neg_indices = [idx for idx in range(label_idx)] + [idx for idx in range(label_idx+1, len(data["options-for-next"]))] # 跳过正类
-            np.random.shuffle(neg_indices) # 注意np不能加seed
+            # Exemples négatifs choisis au hasard
+            neg_indices = list(range(len(data["options-for-next"]))) #[idx for idx in range(label_idx)] + [idx for idx in range(label_idx+1, len(data["options-for-next"]))] 
+            if label_idx: neg_indices.remove(label_idx) # Sauter la catégorie positive
+            np.random.shuffle(neg_indices) 
             neg_indices = neg_indices[:n-1]
             for candidate_idx in neg_indices:
-                candidate = data["options-for-next"][candidate_idx]
-                candidates.append(candidate["utterance"])
+                candidates.append(data["options-for-next"][candidate_idx]["utterance"])
                 label.append(0)
 
-            # 防止变成正类永远在第一位
+            # Melanger candidates, label à la fois
             candidates_label = list(zip(candidates, label))
-            np.random.shuffle(candidates_label) # 注意np不能加seed
+            np.random.shuffle(candidates_label)
             candidates, label = zip(*candidates_label)
-            candidates = list(candidates)
-            label = list(label)
 
             guid = "%s-%s" % (data_type, data["example-id"])
-            examples.append(
-                InputExample(guid=guid, context=contexts, candidate=candidates, label=label)
-            )
+            examples.append(InputExample(guid, contexts, list(candidates), list(label)))
         return examples
 
     def get_train_examples(self, n):
@@ -160,71 +142,64 @@ class DataProcessor:
     
     def get_dev_examples(self, n):
         return self._create_examples(self.datasets["dev"], "dev", n)
+
+    def get_test_examples(self, n):
+        return self._create_examples(self.datasets["test"], "test", n)
     
     def get_dataset_tokens(self, examples):
-        """将文本切分成token列表"""
+        """Découpage du texte en listes de jetons"""
         datasets = []
         for example in examples:
-            guid = example.guid
-            contexts = example.context
-            candidates = example.candidate
-            label = example.label
+            contexts,contexts_tokens = example.context,[]
+            candidates,candidates_tokens = example.candidate,[]
 
-            contexts_tokens = []
+            
             for context in contexts:
                 context = self._convert_to_unicode(context)
                 context = self._clean_text(context)
                 tokens = self._whitespace_tokenize(context)
                 post_tokens = []
                 for token in tokens:
-                    token = token.lower()
-                    token = self._strip_accents(token)
+                    token = self._strip_accents(token.lower())
                     post_tokens.extend(self._split_on_punc(token))
                 contexts_tokens.append(post_tokens)
                 
-            candidates_tokens = []
+            
             for candidate in candidates:
                 candidate = self._convert_to_unicode(candidate)
                 candidate = self._clean_text(candidate)
                 tokens = self._whitespace_tokenize(candidate)
                 post_tokens = []
                 for token in tokens:
-                    token = token.lower()
-                    token = self._strip_accents(token)
+                    token = self._strip_accents(token.lower())
                     post_tokens.extend(self._split_on_punc(token))
                 candidates_tokens.append(post_tokens)
 
             datasets.append(
-                InputExample(guid=guid, context=contexts_tokens, candidate=candidates_tokens, label=label)
+                InputExample(guid=example.guid, context=contexts_tokens, candidate=candidates_tokens, label=example.label)
             )
         return datasets
 
     def create_vocab(self, datasets, vocab_path):
-        """用训练集的token创建词表"""
+        """Création de listes de mots avec les tokens de l'ensemble de formation"""
         count_dict = dict()
         for dataset in datasets:
-            contexts = dataset.context
-            candidates = dataset.candidate
+            contexts,candidates = dataset.context,dataset.candidate
 
             for context in contexts:
                 for token in context:
-                    if token not in count_dict:
-                        count_dict[token] = 0
-                    count_dict[token] += 1
+                    if token in count_dict:
+                        count_dict[token] += 1
+                    count_dict[token] = 0
 
             for candidate in candidates:
-                for token in candidate:
-                    if token not in count_dict:
-                        count_dict[token] = 0
-                    count_dict[token] = 1
-
+                for token in candidate: count_dict[token] = int(token in count_dict)
         token_count_sorted = sorted(count_dict.items(), key=lambda item: item[1], reverse=True)
         
         with open(vocab_path, "w") as f:
-            f.write("<pad>\n") # 句子填充
-            f.write("<unk>\n") # 代表词表中未出现的词
-            for item in token_count_sorted:
-                f.write(item[0] + "\n")
+            f.write("<pad>\n") # Remplissage des phrases
+            f.write("<unk>\n") # Mots qui n'apparaissent pas dans la liste des mots représentatifs
+            for item in token_count_sorted: f.write(item[0] + "\n")
     
     def _load_vocab(self, vocab_path, vocab_size):
         token2index = dict()
@@ -235,79 +210,57 @@ class DataProcessor:
                 token = token.strip()
                 token2index[token] = idx
                 idx += 1
-                if idx > vocab_size:
-                    break
+                if idx > vocab_size: break
         return token2index, min(idx, vocab_size)
     
     def get_dataset_indices(self, datasets, vocab_path, vocab_size):
-        """用字典将token转为index"""
+        """Convertir un jeton en index en utilisant un dictionnaire vocab"""
         vocab, vocab_size = self._load_vocab(vocab_path, vocab_size)
         dataset_indices = []
         for dataset in datasets:
-            guid = dataset.guid
-            contexts = dataset.context
-            candidates = dataset.candidate
-            label = dataset.label   
+            contexts,candidates = dataset.context,dataset.candidate   
+            context_indices ,candidate_indices = [],[]
 
-            context_indices = []
             for context in contexts:
-                indices = []
-                for token in context:
-                    if token in vocab:
-                        indices.append(vocab[token])
-                    else:
-                        indices.append(vocab["<unk>"])
+                indices = [vocab[token] if token in vocab else vocab["<unk>"] for token in context] #for token in context: if token in vocab: indices.append(vocab[token]) else: indices.append(vocab["<unk>"])
                 context_indices.append(indices)
             
-            candidate_indices = []
             for candidate in candidates:
-                indices = []
-                for token in context:
-                    if token in vocab:
-                        indices.append(vocab[token])
-                    else:
-                        indices.append(vocab["<unk>"])
+                indices = [vocab[token] if token in vocab else vocab["<unk>"] for token in candidate] #for token in context: if token in vocab: indices.append(vocab[token]) else: indices.append(vocab["<unk>"])
                 candidate_indices.append(indices)
+
             dataset_indices.append(
-                InputExample(guid=guid, context=context_indices, candidate=candidate_indices, label=label)
+                InputExample(guid=dataset.guid, context=context_indices, candidate=candidate_indices, label=dataset.label)
             )
         return dataset_indices, vocab_size
         
     def create_tensor_dataset(self, datas, max_turn_num, max_seq_len):
-        """创建数据集"""
-        all_contexts = []
-        all_candidates = []
+        """Création d'un ensemble de données"""
+        all_contexts,all_candidates = [],[]
         all_labels = []
         for data in datas:
-            contexts = data.context
-            candidates = data.candidate
-            label = data.label
+            contexts,new_contexts = data.context,[]
+            candidates,new_candidates = data.candidate,[]
 
-            new_contexts = []
-            if len(contexts) > max_turn_num:
-                contexts = contexts[-max_turn_num:]
-            # 对话轮数不足的用全0<pad>补
+            if len(contexts) > max_turn_num: contexts = contexts[-max_turn_num:]
+            # Les tours de dialogue insuffisants sont complétés par tous les zéros <pad>.
             contexts += [[0] * max_seq_len] * (max_turn_num - len(contexts))
             for context in contexts:
-                if len(context) > max_seq_len:
-                    context = context[-max_seq_len:]
-                context += [0] * (max_seq_len - len(context)) #短文本末尾0<pad>填充
+                if len(context) > max_seq_len: context = context[-max_seq_len:]
+                context += [0] * (max_seq_len - len(context)) #0<pad> remplissage à la fin du texte court
                 new_contexts.append(context)
             
-            new_candidates = []
+            
             for candidate in candidates:
-                if len(candidate) > max_seq_len:
-                    candidate = candidate[-max_seq_len:]
+                if len(candidate) > max_seq_len: candidate = candidate[-max_seq_len:]
                 candidate += [0] * (max_seq_len - len(candidate))
                 new_candidates.append(candidate)
             
             all_contexts.append(new_contexts)
             all_candidates.append(new_candidates)
-            all_labels.append(label)
+            all_labels.append(data.label)
 
-        all_contexts = torch.LongTensor(all_contexts)
-        all_candidates = torch.LongTensor(all_candidates)
         all_labels = torch.FloatTensor(all_labels)
+        all_contexts,all_candidates = torch.LongTensor(all_contexts),torch.LongTensor(all_candidates)
 
-        tensor_dataset = torch.utils.data.TensorDataset(all_contexts, all_candidates, all_labels)
-        return tensor_dataset
+        return torch.utils.data.TensorDataset(all_contexts, all_candidates, all_labels)

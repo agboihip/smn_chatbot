@@ -1,9 +1,9 @@
 # -*- coding: UTF-8 -*-​ 
 import copy,torch, numpy as np
-from torch import nn,autograd
+from torch import nn,autograd,cuda
 
 torch.manual_seed(1024)
-torch.cuda.manual_seed(1024)
+cuda.manual_seed(1024)
 
 class GRUModel(nn.Module):
     def __init__(self, in_dim, out_dim, num_layers=1, batch_first=True, directions=1, dropout=0.0):
@@ -61,6 +61,7 @@ class CNNModel(nn.Module):
         out = self.max_pool(out) # [batch_size * candidate_set_size, turn_num, out_channels, W_pool_out, H_pool_out]
         return out
 
+
 class FeatureFusion(nn.Module):
     def __init__(self, method = "last", turn_num=None):
         super(FeatureFusion, self).__init__()
@@ -73,19 +74,13 @@ class FeatureFusion(nn.Module):
         # lengths: [batch_size * candidate_set_size]
         
         if self.method == "last":
-            for b_id, length in enumerate(lengths):
-                x[b_id, -1, :] = x[b_id, length-1, :]
+            for b_id, length in enumerate(lengths): x[b_id, -1, :] = x[b_id, length-1, :]
             return x[:, -1, :] # [batch_size * candidate_set_size, hidden_size]
         elif self.method == "static":
-            for b_id, length in enumerate(lengths):
-                x[b_id, length:, :] = 0.0
+            for b_id, length in enumerate(lengths): x[b_id, length:, :] = 0.0
             return torch.matmul(self.weight, x) # [batch_size * candidate_set_size, hidden_size]
-        elif self.method == "dynamic":
-            # TODO
-            pass
-        else:
-            raise ValueError(f"Feature-fusion method {self.method} not supported")
-
+        elif self.method == "dynamic": pass
+        else: raise ValueError(f"Feature-fusion method {self.method} not supported")
 
 
 class SMNModel(nn.Module):
@@ -181,6 +176,6 @@ class SMNModel(nn.Module):
 
         flatten = F.view(batch_size, -1)
         logits = self.classifier(flatten)
-        probs = torch.nn.functional.softmax(logits, dim=-1)
+        probs = nn.functional.softmax(logits, dim=-1)
 
         return probs
