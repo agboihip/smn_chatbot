@@ -114,14 +114,7 @@ if __name__ == "__main__":
         processor.create_tensor_dataset(test_dataset_indices, config.max_turn_num, config.max_seq_len),
         config.batch_size)
 
-    model, loss_func = SMNModel(config).to(device), nn.BCELoss()
-    optimizer = optim.Adam(model.parameters(), lr=config.lr)
-
-    model = train(model, train_loader, dev_loader, optimizer, loss_func, config.epochs, test_loader)
-    torch.save(model.state_dict(), config.model_save_path)
-
-
     premodel = torch.load(config.model_save_path).to(device)
     premodel.eval()
-    test_acc,test_loss = eval(premodel, loss_func, test_loader)
+    test_acc,test_loss = eval(premodel, nn.BCELoss(), test_loader)
     print(f"Test Loss: {test_loss:.2f}, Test Acc: {test_acc:.2f}")
