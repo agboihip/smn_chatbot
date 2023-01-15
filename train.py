@@ -10,12 +10,12 @@ torch.manual_seed(512)
 class Config:
     def __init__(self):
         self.data_path = {
-            "train": "./dataset/dialogue/ubuntu_train_subtask_1.json",
-            "dev": "./dataset/dialogue/ubuntu_dev_subtask_1.json",
-            "test": "./dataset/dialogue/ubuntu_test_subtask_1.json"
+            "train": "../drive_data/MyDrive/dataset/dialogue/ubuntu_train_subtask_1.json",
+            "dev": "../drive_data/MyDrive/dataset/dialogue/ubuntu_dev_subtask_1.json",
+            "test": "../drive_data/MyDrive/dataset/dialogue/ubuntu_test_subtask_1.json"
         }
-        self.vocab_path = "./dataset/dialogue/vocab.txt"
-        self.model_save_path = "./stm_model_param.pkl"
+        self.vocab_path = "../drive_data/MyDrive/dataset/dialogue/vocab.txt"
+        self.model_save_path = "../drive_data/MyDrive/dataset/stm_model_param.pkl"
         self.update_vocab = True
 
         self.vocab_size = 50000
@@ -119,7 +119,6 @@ if __name__ == "__main__":
 
     model = train(model, train_loader, dev_loader, optimizer, loss_func, config.epochs, test_loader)
     torch.save(model.state_dict(), config.model_save_path)
-
 
     premodel = torch.load(config.model_save_path).to(device)
     premodel.eval()

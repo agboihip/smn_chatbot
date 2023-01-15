@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-​ 
 import torch,copy,os
-from torch import nn,utils,optim
+from torch import nn,utils
 from smn_model import SMNModel
 from data_processor import DataProcessor
 
@@ -10,12 +10,12 @@ torch.manual_seed(512)
 class Config:
     def __init__(self):
         self.data_path = {
-            "train": "./dataset/dialogue/ubuntu_train_subtask_1.json",
-            "dev": "./dataset/dialogue/ubuntu_dev_subtask_1.json",
-            "test": "./dataset/dialogue/ubuntu_test_subtask_1.json"
+            "train": "../drive_data/MyDrive/dataset/dialogue/ubuntu_train_subtask_1.json",
+            "dev": "../drive_data/MyDrive/dataset/dialogue/ubuntu_dev_subtask_1.json",
+            "test": "../drive_data/MyDrive/dataset/dialogue/ubuntu_test_subtask_1.json"
         }
-        self.vocab_path = "./dataset/dialogue/vocab.txt"
-        self.model_save_path = "./stm_model_param.pkl"
+        self.vocab_path = "../drive_data/MyDrive/dataset/dialogue/vocab.txt"
+        self.model_save_path = "../drive_data/MyDrive/dataset/stm_model_param.pkl"
         self.update_vocab = True
 
         self.vocab_size = 50000
@@ -56,27 +56,6 @@ def eval(model, loss_func, dev_loader, optimizer=None):
     dev_acc = corrects / len(dev_loader.dataset)
     return dev_acc,dev_loss
 
-def train(model, train_loader, dev_loader, optimizer, loss_func, epochs, test_loader=None):
-    best_val_acc,best_model_params = 0.0,copy.deepcopy(model.state_dict())
-    for epoch in range(epochs):
-        model.train()
-        train_acc,train_loss = eval(model, loss_func, train_loader, optimizer)
-
-        if epoch % 20 == 0:
-            print(f"----------epoch/epochs: {epoch}/{epochs}----------")
-            print(f"Train Loss: {train_loss:.2f}, Train Acc: {train_acc:.2f}")
-
-            model.eval()
-            val_acc,val_loss = eval(model, loss_func, dev_loader)
-            print(f"Dev Loss: {val_loss:.2f}, Dev Acc: {val_acc:.2f}")
-            if val_acc > best_val_acc: best_val_acc,best_model_params = val_acc,copy.deepcopy(model.state_dict())
-    if test_loader:
-        model.eval()
-        test_acc,test_loss = eval(model, loss_func, test_loader)
-        print(f"Test Loss: {test_loss:.2f}, Test Acc: {test_acc:.2f}")
-    model.load_state_dict(best_model_params)
-    return model
-
 def data(train_tensor, dev_tensor, test_tensor, bs):
     return (
         utils.data.DataLoader(train_tensor, batch_size=bs, shuffle=True),
@@ -114,7 +93,8 @@ if __name__ == "__main__":
         processor.create_tensor_dataset(test_dataset_indices, config.max_turn_num, config.max_seq_len),
         config.batch_size)
 
-    premodel = torch.load(config.model_save_path).to(device)
-    premodel.eval()
-    test_acc,test_loss = eval(premodel, nn.BCELoss(), test_loader)
+    model = SMNModel(config).to(device)
+    model.load_state_dict(torch.load(config.model_save_path))
+    model.eval()
+    test_acc,test_loss = eval(model, nn.BCELoss(), test_loader)
     print(f"Test Loss: {test_loss:.2f}, Test Acc: {test_acc:.2f}")
