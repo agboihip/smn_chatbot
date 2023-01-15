@@ -5,6 +5,36 @@ import json,torch,numpy as np
 torch.manual_seed(1024)
 torch.cuda.manual_seed(1024)
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+class Config:
+    def __init__(self):
+        self.data_path = {
+            "train": "../drive_data/MyDrive/dataset/dialogue/ubuntu_train_subtask_1.json",
+            "dev": "../drive_data/MyDrive/dataset/dialogue/ubuntu_dev_subtask_1.json",
+            "test": "../drive_data/MyDrive/dataset/dialogue/ubuntu_test_subtask_1.json"
+        }
+        self.vocab_path = "../drive_data/MyDrive/dataset/dialogue/vocab.txt"
+        self.model_save_path = "../drive_data/MyDrive/dataset/stm_model_param.pkl"
+        self.update_vocab = True
+
+        self.vocab_size = 50000
+        self.embed_dim = 200
+        self.hidden_size = 50
+        self.out_channels = 8
+        self.fusion_method = "last"
+        
+        self.max_turn_num = 10
+        self.max_seq_len = 50
+        self.candidates_set_size = 2 #Rn@k: n=2，10，100, k=1
+
+        self.batch_size = 12
+        self.epochs = 50
+        self.dropout = 0.2
+        self.lr = 0.0002
+        self.num_classes = self.candidates_set_size
+
+        self.device = device
 
 class InputExample:
     def __init__(self, guid, context, candidate, label):
@@ -234,7 +264,7 @@ class DataProcessor:
             )
         return dataset_indices, vocab_size
         
-    def create_tensor_dataset(self, datas, max_turn_num, max_seq_len):
+    def create_tensor_dataset(self, datas, max_turn_num, max_seq_len, batch, shuffle=False):
         """Création d'un ensemble de données"""
         all_contexts,all_candidates = [],[]
         all_labels = []
@@ -263,4 +293,24 @@ class DataProcessor:
         all_labels = torch.FloatTensor(all_labels)
         all_contexts,all_candidates = torch.LongTensor(all_contexts),torch.LongTensor(all_candidates)
 
-        return torch.utils.data.TensorDataset(all_contexts, all_candidates, all_labels)
+        return torch.utils.data.DataLoader(torch.utils.data.TensorDataset(all_contexts, all_candidates, all_labels),batch_size=batch,shuffle=shuffle)
+
+def eval(model, loss_func, dev_loader, optimizer=None):
+    loss_val,corrects = 0.0,0.0
+    for contexts, candidates, labels in dev_loader:
+        contexts,labels = contexts.to(device),labels.to(device)
+        preds = model(contexts, candidates.to(device))
+        loss = loss_func(preds, labels)
+
+        if optimizer:
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+        preds,labels = torch.argmax(preds, dim=1),torch.argmax(labels, dim=1)
+        corrects += torch.sum(preds==labels).item()
+        loss_val += loss.item() * contexts.size(0)
+
+    dev_loss = loss_val / len(dev_loader.dataset)
+    dev_acc = corrects / len(dev_loader.dataset)
+    return dev_acc,dev_loss
