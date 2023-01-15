@@ -12,7 +12,7 @@ if __name__ == "__main__":
     test_dataset_indices, vocab_size = processor.get_dataset_indices(test_dataset_tokens, config.vocab_path, config.vocab_size)
     config.vocab_size = vocab_size # Taille réelle de la liste de mots
     
-    test_loader = processor.create_tensor_dataset(test_dataset_indices, config.max_turn_num, config.max_seq_len,batch_size=config.batch_size)
+    test_loader = processor.create_tensor_dataset(test_dataset_indices, config.max_turn_num, config.max_seq_len,config.batch_size)
     model = SMNModel(config).to(device)
     model.load_state_dict(load(config.model_save_path))
     model.eval()
