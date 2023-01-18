@@ -15,8 +15,8 @@ class Config:
             "test": "../drive_data/MyDrive/dataset/dialogue/ubuntu_test_subtask_1.json"
         }
         self.vocab_path = "../drive_data/MyDrive/dataset/dialogue/vocab.txt"
-        self.model_save_path = "../drive_data/MyDrive/dataset/stm_model_param.pkl"
-        self.update_vocab = True
+        self.model_save_path = "./stm_model_param.pkl"
+        self.update_vocab = False
 
         self.vocab_size = 50000
         self.embed_dim = 200
