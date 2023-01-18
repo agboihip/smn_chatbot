@@ -156,13 +156,9 @@ class SMNModel(nn.Module):
         M2 = M2.permute(0, 2, 1, 3, 4).contiguous() # [batch_size, candidate_set_size, turn_num, seq_length, seq_length]
         M2 = M2.view(-1, self.max_turn_num, self.max_seq_len, self.max_seq_len) # [batch_size * candidate_set_size, turn_num, seq_length, seq_length]
         
-        M = [M1, M2]
-        M = torch.stack(M, dim=2).contiguous() # [batch_size * candidate_set_size, turn_num, 2, seq_length, seq_length]
+        M = torch.stack([M1, M2], dim=2).contiguous() # [batch_size * candidate_set_size, turn_num, 2, seq_length, seq_length]
         M = M.view(-1, 2, self.max_seq_len, self.max_seq_len) # [batch_size * candidate_set_size * turn_num, 2, seq_length, seq_length]
         M = self.cnn_layer(M)
-        # print("#" * 20)
-        # print("M shape: ", M.shape)
-        # print("#" * 20)
         # 16与设置的文本最大长度和cnn的实现方式相关，可计算得到
         M = M.view(-1, self.max_turn_num, self.out_channels, 16, 16) # [batch_size * candidate_set_size, turn_num, out_channels, 16, 16]
         size_0 = M.size(0)
@@ -176,6 +172,5 @@ class SMNModel(nn.Module):
 
         flatten = F.view(batch_size, -1)
         logits = self.classifier(flatten)
-        probs = nn.functional.softmax(logits, dim=-1)
 
-        return probs
+        return nn.functional.softmax(logits, dim=-1)

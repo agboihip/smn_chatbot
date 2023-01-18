@@ -140,9 +140,8 @@ class DataProcessor:
             candidates,contexts = [],[text["utterance"] for text in data["messages-so-far"]]
             label,label_idx = [], None
             if "options-for-correct-answers" in data:
-                gt = data["options-for-correct-answers"][0]["candidate-id"]
                 for candidate_idx, candidate in enumerate(data["options-for-next"]):
-                    if candidate["candidate-id"] == gt:
+                    if candidate["candidate-id"] == data["options-for-correct-answers"][0]["candidate-id"]:
                         label.append(1)
                         label_idx = candidate_idx
                         candidates.append(candidate["utterance"])
@@ -292,6 +291,7 @@ class DataProcessor:
 
         all_labels = torch.FloatTensor(all_labels)
         all_contexts,all_candidates = torch.LongTensor(all_contexts),torch.LongTensor(all_candidates)
+        print(all_candidates.shape,all_contexts.shape,all_labels.shape)
 
         return torch.utils.data.DataLoader(torch.utils.data.TensorDataset(all_contexts, all_candidates, all_labels),batch_size=batch,shuffle=shuffle)
 
