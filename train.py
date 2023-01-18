@@ -16,12 +16,12 @@ def train(model, train_loader, dev_loader, optimizer, loss_func, epochs, test_lo
             print(f"Train Loss: {train_loss:.2f}, Train Acc: {train_acc:.2f}")
 
             model.eval()
-            val_acc,val_loss = eval(model, loss_func, dev_loader)
+            with torch.no_grad(): val_acc,val_loss = eval(model, loss_func, dev_loader)
             print(f"Dev Loss: {val_loss:.2f}, Dev Acc: {val_acc:.2f}")
             if val_acc > best_val_acc: best_val_acc,best_model_params = val_acc,copy.deepcopy(model.state_dict())
     if test_loader:
         model.eval()
-        test_acc,test_loss = eval(model, loss_func, test_loader)
+        with torch.no_grad(): test_acc,test_loss = eval(model, loss_func, test_loader)
         print(f"Test Loss: {test_loss:.2f}, Test Acc: {test_acc:.2f}")
     model.load_state_dict(best_model_params)
     return model

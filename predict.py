@@ -16,5 +16,5 @@ if __name__ == "__main__":
     model = SMNModel(config).to(device)
     model.load_state_dict(load(config.model_save_path))
     model.eval()
-    test_acc,test_loss = eval(model, nn.BCELoss(), test_loader)
+    with torch.no_grad(): test_acc,test_loss = eval(model, nn.BCELoss(), test_loader)
     print(f"Test Loss: {test_loss:.2f}, Test Acc: {test_acc:.2f}")
